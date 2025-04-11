@@ -7,6 +7,7 @@ const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
   const [search, setSearch] = useState("");
   const [editData, setEditData] = useState(null);
+  const [showExpiringOnly, setShowExpiringOnly] = useState(false);
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -54,16 +55,29 @@ const Vehicles = () => {
 
   const formatDate = (dateStr) => dateStr?.slice(0, 10);
 
-  const filteredVehicles = vehicles.filter((v) => {
-    const q = search.toLowerCase();
-    return (
-      v.cabNumber?.toLowerCase().includes(q) ||
-      v.make?.toLowerCase().includes(q) ||
-      v.model?.toLowerCase().includes(q) ||
-      v.lic_plate?.toLowerCase().includes(q) ||
-      v.color?.toLowerCase().includes(q)
+  const isAboutToExpire = (dateStr, days = 30) => {
+    if (!dateStr) return false;
+    const now = new Date();
+    const expiry = new Date(dateStr);
+    const diffTime = expiry - now;
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+    return diffDays >= 0 && diffDays <= days;
+  };
+
+  const filteredVehicles = vehicles
+    .filter((v) => {
+      const q = search.toLowerCase();
+      return (
+        v.cabNumber?.toLowerCase().includes(q) ||
+        v.make?.toLowerCase().includes(q) ||
+        v.model?.toLowerCase().includes(q) ||
+        v.lic_plate?.toLowerCase().includes(q) ||
+        v.color?.toLowerCase().includes(q)
+      );
+    })
+    .filter((v) =>
+      showExpiringOnly ? isAboutToExpire(v.regis_expriry) : true
     );
-  });
 
   return (
     <div className="container py-4">
@@ -82,6 +96,19 @@ const Vehicles = () => {
           value={search}
           onChange={handleSearchChange}
         />
+      </div>
+
+      <div className="form-check mb-3">
+        <input
+          type="checkbox"
+          className="form-check-input"
+          id="expiringToggle"
+          checked={showExpiringOnly}
+          onChange={() => setShowExpiringOnly(!showExpiringOnly)}
+        />
+        <label className="form-check-label" htmlFor="expiringToggle">
+          Show only vehicles with upcoming registration expiry (30 days)
+        </label>
       </div>
 
       <div className="table-responsive">
@@ -107,7 +134,13 @@ const Vehicles = () => {
                 <td>{v.vehicle_id}</td>
                 <td>{v.cabNumber}</td>
                 <td>{v.vinNumber}</td>
-                <td>{formatDate(v.regis_expriry)}</td>
+                <td
+                  className={
+                    isAboutToExpire(v.regis_expriry) ? "bg-warning" : ""
+                  }
+                >
+                  {formatDate(v.regis_expriry)}
+                </td>
                 <td>{v.lic_plate}</td>
                 <td>{v.color}</td>
                 <td>{v.make}</td>
@@ -139,7 +172,6 @@ const Vehicles = () => {
         )}
       </div>
 
-      {/* Edit Modal */}
       {editData && (
         <div
           className="modal show d-block"

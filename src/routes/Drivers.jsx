@@ -7,6 +7,7 @@ const Drivers = () => {
   const [drivers, setDrivers] = useState([]);
   const [search, setSearch] = useState("");
   const [editData, setEditData] = useState(null);
+  const [showExpiringOnly, setShowExpiringOnly] = useState(false);
 
   useEffect(() => {
     const fetchDrivers = async () => {
@@ -32,6 +33,28 @@ const Drivers = () => {
 
   const formatDate = (dateStr) => dateStr?.slice(0, 10);
 
+  const isAboutToExpire = (dateStr, days = 30) => {
+    if (!dateStr) return false;
+    const now = new Date();
+    const expiry = new Date(dateStr);
+    const diffTime = expiry - now;
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+    return diffDays >= 0 && diffDays <= days;
+  };
+
+  const isDriverExpiring = (driver) =>
+    ["dot_expiry", "cbi_expiry", "puc_expiry", "dl_expiry", "llc_expiry"].some(
+      (key) => isAboutToExpire(driver[key])
+    );
+
+  const filteredDrivers = drivers
+    .filter(
+      (d) =>
+        d.firstName.toLowerCase().includes(search.toLowerCase()) ||
+        d.lastName.toLowerCase().includes(search.toLowerCase())
+    )
+    .filter((d) => (showExpiringOnly ? isDriverExpiring(d) : true));
+
   const handleEditClick = (driver) => {
     setEditData({ ...driver });
   };
@@ -54,12 +77,6 @@ const Drivers = () => {
     }
   };
 
-  const filteredDrivers = drivers.filter(
-    (d) =>
-      d.firstName.toLowerCase().includes(search.toLowerCase()) ||
-      d.lastName.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
     <div className="container py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
@@ -77,6 +94,19 @@ const Drivers = () => {
           value={search}
           onChange={handleSearchChange}
         />
+      </div>
+
+      <div className="form-check mb-3">
+        <input
+          type="checkbox"
+          className="form-check-input"
+          id="expiringToggle"
+          checked={showExpiringOnly}
+          onChange={() => setShowExpiringOnly(!showExpiringOnly)}
+        />
+        <label className="form-check-label" htmlFor="expiringToggle">
+          Show only drivers with upcoming expiry (30 days)
+        </label>
       </div>
 
       <div className="table-responsive">
@@ -108,15 +138,35 @@ const Drivers = () => {
                 <td>{d.lastName}</td>
                 <td>{d.email}</td>
                 <td>{formatDate(d.dob)}</td>
-                <td>{formatDate(d.dot_expiry)}</td>
-                <td>{formatDate(d.cbi_expiry)}</td>
-                <td>{formatDate(d.puc_expiry)}</td>
+                <td
+                  className={isAboutToExpire(d.dot_expiry) ? "bg-warning" : ""}
+                >
+                  {formatDate(d.dot_expiry)}
+                </td>
+                <td
+                  className={isAboutToExpire(d.cbi_expiry) ? "bg-warning" : ""}
+                >
+                  {formatDate(d.cbi_expiry)}
+                </td>
+                <td
+                  className={isAboutToExpire(d.puc_expiry) ? "bg-warning" : ""}
+                >
+                  {formatDate(d.puc_expiry)}
+                </td>
                 <td>{d.dl_number}</td>
-                <td>{formatDate(d.dl_expiry)}</td>
+                <td
+                  className={isAboutToExpire(d.dl_expiry) ? "bg-warning" : ""}
+                >
+                  {formatDate(d.dl_expiry)}
+                </td>
                 <td>{d.signedContract}</td>
                 <td>{d.ein_number}</td>
                 <td>{d.llc_name}</td>
-                <td>{formatDate(d.llc_expiry)}</td>
+                <td
+                  className={isAboutToExpire(d.llc_expiry) ? "bg-warning" : ""}
+                >
+                  {formatDate(d.llc_expiry)}
+                </td>
                 <td>
                   <button
                     className="btn btn-sm btn-outline-primary"
